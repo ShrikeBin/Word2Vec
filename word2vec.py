@@ -24,11 +24,7 @@ class DataLoader:
             target_word = self.tokens[i]
             target_index = self.word_to_index[target_word]
             
-            context_indices = [
-                self.word_to_index[self.tokens[j]] 
-                for j in range(i - window_size, i + window_size + 1) 
-                if j != i
-            ]
+            context_indices = [self.word_to_index[self.tokens[j]] for j in range(i - window_size, i + window_size + 1) if j != i]
             training_data.append((context_indices, target_index))
         return training_data
 
