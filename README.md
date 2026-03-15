@@ -13,8 +13,3 @@ during follow-up we will ask questions about the ideas behind word2vec,
 the code, gradient derivations, and possible alternative implementations or optimizations.
 Preferably, solutions should be provided as a link to a public GitHub repository.
 ```
-
-
-https://derekchia.com/an-implementation-guide-to-word2vec-using-numpy-and-google-sheets
-https://www.geeksforgeeks.org/python/python-word-embedding-using-word2vec/
-https://github.com/ShrikeBin/Uni4/blob/main/AI/list5/Layers.py
