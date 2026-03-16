@@ -32,14 +32,14 @@ class DataLoader:
 SETTINGS = \
 {
 	'window_size': 2,	        # context window +/- in regard of center word
-	'n': 100,		            # dimensions of word embeddings
+	'n': 5,		            	# dimensions of word embeddings
 	'epochs': 5,		        # number of training epochs
 	'learning_rate': 0.1	    # learning rate
 }
 
 data_loader = DataLoader(['blindsight.txt'])
-VOCAB = data_loader.vocab 													# set of unique words in the text
-TRAINING_DATA = data_loader.generate_training_data(SETTINGS['window_size']) # list of (context, target) pairs
+VOCAB = data_loader.vocab
+TRAINING_DATA = data_loader.generate_training_data(SETTINGS['window_size'])
 
 class Word2Vec:
 	'''
@@ -50,38 +50,38 @@ class Word2Vec:
 	def __init__(self, vocab = VOCAB, settings = SETTINGS):
 		self.window_size = settings['window_size']
 		self.dim = settings['n']
-		self.lr = settings['learning_rate']
+		self.learning_rate = settings['learning_rate']
 		self.epochs = settings['epochs']
 
 		self.vocab = set(vocab)
 		self.vocab_size = len(self.vocab)
 
-		self.l1 = np.random.uniform(-0.5, 0.5, (self.vocab_size, self.dim))
-		self.l2 = np.random.uniform(-0.5, 0.5, (self.dim, self.vocab_size))
+		self.embedding_layer = np.random.uniform(-0.5, 0.5, (self.vocab_size, self.dim))
+		self.context_layer = np.random.uniform(-0.5, 0.5, (self.dim, self.vocab_size))
 
 	def forward(self, x):
-		hidden = np.dot(self.l1.T, x)
-		output = np.dot(self.l2.T, hidden)
+		hidden = np.dot(self.embedding_layer.T, x)
+		output = np.dot(self.context_layer.T, hidden)
 		out_prob = self.softmax(output)
 		return out_prob
           
+	#TODO NEEDS FIXING
 	def backward(self, context_indices, hidden, error):
-		d_l2 = np.outer(hidden, error)
-		self.l2 -= self.lr * d_l2
-
-		hidden_error = np.dot(self.l2, error)
-		
+		d_context = np.outer(hidden, error)
+		self.context_layer -= self.learning_rate * d_context
+		hidden_error = np.dot(self.context_layer, error)
 		for idx in context_indices:
-			self.l1[idx] -= self.lr * (hidden_error / len(context_indices))
+			self.embedding_layer[idx] -= self.learning_rate * (hidden_error / len(context_indices))
 
+	#TODO NEEDS FIXING
 	def train(self, training_data):
 		for epoch in range(self.epochs):
 			loss = 0
 			ITER = 0
 			for context_indices, target_idx in training_data:
 				ITER += 1
-				hidden = np.mean(self.l1[context_indices], axis=0)
-				u = np.dot(self.l2.T, hidden)
+				hidden = np.mean(self.embedding_layer[context_indices], axis=0)
+				u = np.dot(self.context_layer.T, hidden)
 				y_pred = self.softmax(u)
 
 				error = y_pred.copy()
@@ -92,7 +92,9 @@ class Word2Vec:
 				loss -= np.log(y_pred[target_idx] + 1e-9)
 
 				print(f"Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {loss:.4f}", end='\r')
-			print(f"Epoch {epoch} complete. Loss: {loss}")
+
+			print("--------------------------------------------------------")
+			print(f"Epoch {epoch+1} complete. Loss: {loss}")
 
 	def softmax(self, x):
 		exp_x = np.exp(x - np.max(x))
