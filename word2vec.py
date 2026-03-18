@@ -1,3 +1,5 @@
+from ast import pattern
+from pydoc import text
 import re
 import numpy as np
 from time import sleep
@@ -16,7 +18,7 @@ class DataLoader:
         self.index_to_word = {idx: word for idx, word in enumerate(self.vocab)}
 
     def tokenize(self, text):
-        pattern = re.compile(r"[A-Za-z]+[\w^\']*|[\w^\']*[A-Za-z]+[\w^\']*")
+        pattern = re.compile(r"\w+(?:'\w+)?")
         return pattern.findall(text.lower())
 
     def generate_training_data(self, window_size):
@@ -40,48 +42,74 @@ class DataLoader:
 
 SETTINGS = {
     "window_size": 2,                   # context window +/- in regard of center word
-    "n": 500,                           # dimensions of word embeddings
+    "n": 50,                            # dimensions of word embeddings
     "epochs": 10,                       # number of training epochs
     "learning_rate": 0.01,              # learning rate
     "negative_sample_amount": 10,       # number of negative samples per positive sample
 }
 
 data_loader = DataLoader(["blindsight.txt"])
-VOCAB = data_loader.vocab
+TOKENS = data_loader.tokens
 TRAINING_DATA = data_loader.generate_training_data(SETTINGS["window_size"])
 
 
 class Word2Vec:
     """
     CBOW implementation of Word2Vec.
-    With Negative Sampling. (? not yet)
+    Naive version and version with Negative Sampling.
     """
 
-    def __init__(self, vocab=VOCAB, settings=SETTINGS):
+    def __init__(self, tokens=TOKENS, settings=SETTINGS):
         self.window_size = settings["window_size"]
         self.dim = settings["n"]
         self.learning_rate = settings["learning_rate"]
         self.epochs = settings["epochs"]
         self.negative_sample_amount = settings.get("negative_sample_amount", 5)
 
-        self.vocab = list(set(vocab))
+        self.vocab = sorted(list(set(tokens)))
         self.vocab_size = len(self.vocab)
+        self.word_to_index = {word: idx for idx, word in enumerate(self.vocab)}
+        self.index_to_word = {idx: word for idx, word in enumerate(self.vocab)}
 
         self.embedding_layer = np.random.uniform(-1/self.dim, 1/self.dim, (self.vocab_size, self.dim))
         self.context_layer = np.random.uniform(-1/self.dim, 1/self.dim, (self.vocab_size, self.dim))
 
-    def forward(self, x):
-        hidden = np.dot(self.embedding_layer.T, x)
-        output = np.dot(self.context_layer.T, hidden)
+    def forward(self, context_indices):
+        hidden = np.mean(self.embedding_layer[context_indices], axis=0)
+        output = np.dot(self.context_layer, hidden)
         out_prob = self.softmax(output)
-        return out_prob
+        return out_prob, hidden
 
     def backward(self, context_indices, hidden, error):
-        d_context = np.outer(hidden, error)
+        d_context = np.outer(error, hidden)
         self.context_layer -= self.learning_rate * d_context
-        hidden_error = np.dot(self.context_layer, error)
+        
+        hidden_error = np.dot(self.context_layer.T, error)
+        grad_input = hidden_error / len(context_indices)
+        
         for idx in context_indices:
-            self.embedding_layer[idx] -= self.learning_rate * (hidden_error / len(context_indices))
+            self.embedding_layer[idx] -= self.learning_rate * grad_input
+
+    def train(self, training_data):
+        for epoch in range(self.epochs):
+            LOSS = 0
+            ITER = 0
+            for context_indices, target_idx in training_data:
+                ITER += 1
+                y_pred, hidden = self.forward(context_indices)
+
+                error = y_pred.copy()
+                error[target_idx] -= 1
+
+                self.backward(context_indices, hidden, error)
+                LOSS -= np.log(y_pred[target_idx] + 1e-9)
+    
+                print(f"[NAIVE] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {LOSS:.4f}", end="\r")
+            
+            print("\r" + " " * 200 + "\r", end="")
+            print("--------------------------------------------------------")
+            print(f"[NAIVE] Epoch {epoch+1} complete. Loss: {LOSS:.4f}")
+            print("--------------------------------------------------------")
 
     def forward_ns(self, context_indices, target_index, negative_indices):
         hidden = np.mean(self.embedding_layer[context_indices], axis=0)
@@ -105,32 +133,9 @@ class Word2Vec:
         for idx in context_indices:
             self.embedding_layer[idx] -= self.learning_rate * (hidden_error / len(context_indices))
 
-    def train(self, training_data):
-        for epoch in range(self.epochs):
-            loss = 0
-            ITER = 0
-            for context_indices, target_idx in training_data:
-                ITER += 1
-                hidden = np.mean(self.embedding_layer[context_indices], axis=0)
-                u = np.dot(self.context_layer.T, hidden)
-                y_pred = self.softmax(u)
-
-                error = y_pred.copy()
-                error[target_idx] -= 1
-
-                self.backward(context_indices, hidden, error)
-
-                loss -= np.log(y_pred[target_idx] + 1e-9)
-                print(f"[NAIVE] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {loss:.4f}", end="\r")
-            
-            print("\r" + " " * 200 + "\r", end="")
-            print("--------------------------------------------------------")
-            print(f"[NAIVE] Epoch {epoch+1} complete. Loss: {loss:.4f}")
-            print("--------------------------------------------------------")
-
     def train_ns(self, training_data):
         for epoch in range(self.epochs):
-            loss = 0
+            LOSS = 0
             ITER = 0
             for context_indices, target_idx in training_data:
                 ITER += 1
@@ -140,13 +145,13 @@ class Word2Vec:
 
                 pos_loss = -np.log(self.sigmoid(pos_score) + 1e-9)
                 neg_loss = -np.sum(np.log(1 - self.sigmoid(neg_scores) + 1e-9))
-                loss += pos_loss + neg_loss
+                LOSS += pos_loss + neg_loss
 
-                print(f"[NEGATIVE SAMPLING] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {loss:.4f}\r", end="\r")
+                print(f"[NEGATIVE SAMPLING] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {LOSS:.4f}\r", end="\r")
 
             print("\r" + " " * 200 + "\r", end="")
             print("--------------------------------------------------------")
-            print(f"[NEGATIVE SAMPLING] Epoch {epoch+1} complete. Loss: {loss:.4f}")
+            print(f"[NEGATIVE SAMPLING] Epoch {epoch+1} complete. Loss: {LOSS:.4f}")
             print("--------------------------------------------------------")
 
     def softmax(self, x):
@@ -183,11 +188,11 @@ class Word2Vec:
         embedding1 = self.embedding_layer[idx1]
         embedding2 = self.embedding_layer[idx2]
         
-        cosine_similarity = np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2) + 1e-9)
-        return cosine_similarity
+        distance = np.linalg.norm(embedding1 - embedding2)
+        return distance 
 
 
 model = Word2Vec()
-model.train_ns(TRAINING_DATA)
-print(f"Most similar to 'blindsight': {model.most_similar('blindsight')}")
-print(f"Most similar to 'fish': {model.most_similar('fish')}")
+model.train(TRAINING_DATA)
+word = "sarasti"
+print(f"Most similar to '{word.lower()}': {model.most_similar(word.lower())}")
