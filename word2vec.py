@@ -40,7 +40,7 @@ class DataLoader:
 
 SETTINGS = {
     "window_size": 2,                   # context window +/- in regard of center word
-    "n": 50,                            # dimensions of word embeddings
+    "n": 500,                           # dimensions of word embeddings
     "epochs": 10,                       # number of training epochs
     "learning_rate": 0.01,              # learning rate
     "negative_sample_amount": 10,       # number of negative samples per positive sample
@@ -122,6 +122,7 @@ class Word2Vec:
 
                 loss -= np.log(y_pred[target_idx] + 1e-9)
                 print(f"[NAIVE] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {loss:.4f}", end="\r")
+            
             print("\r" + " " * 200 + "\r", end="")
             print("--------------------------------------------------------")
             print(f"[NAIVE] Epoch {epoch+1} complete. Loss: {loss:.4f}")
@@ -145,7 +146,7 @@ class Word2Vec:
 
             print("\r" + " " * 200 + "\r", end="")
             print("--------------------------------------------------------")
-            print(f"[NEGATIVE SAMPLING] Epoch {epoch+1} complete. Loss: {loss:.4f}", end="\n")
+            print(f"[NEGATIVE SAMPLING] Epoch {epoch+1} complete. Loss: {loss:.4f}")
             print("--------------------------------------------------------")
 
     def softmax(self, x):
