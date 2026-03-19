@@ -29,3 +29,26 @@ word2vec/
 
 - numpy
 - python 3.12+
+
+# Example:
+
+```bash
+...
+--------------------------------------------------------
+[NEGATIVE SAMPLING] Epoch 10 complete. Loss: 55583.9354
+--------------------------------------------------------
+[NEGATIVE SAMPLING] Epoch 11 complete. Loss: 55033.5484
+--------------------------------------------------------
+[NEGATIVE SAMPLING] Epoch 12 complete. Loss: 54421.1110
+--------------------------------------------------------
+Most similar to 'alice': 
+[('you', 0.41745737422326085), 
+ ('it', 0.43266910769314604), 
+ ('and', 0.5745998686287821), 
+ ('said', 0.5821859805125168), 
+ ('she', 0.7022842829413142)]
+Save embeddings? [Y/N] Y
+Model saved to: 
+  alice_ metadata.json 
+  alice_ weights.npy
+```

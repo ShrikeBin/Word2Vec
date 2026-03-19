@@ -57,6 +57,7 @@ class Word2Vec:
             self.embedding_layer[idx] -= self.learning_rate * grad_embedding
 
     def train(self, training_data: list[tuple[list[int], int]]) -> None:
+        print("--------------------------------------------------------")
         for epoch in range(self.epochs):
             LOSS = 0
             ITER = 0
@@ -77,9 +78,7 @@ class Word2Vec:
                     f"[NAIVE] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {LOSS:.4f}",
                     end="\r",
                 )
-
-            print("\r" + " " * 200 + "\r", end="")
-            print("--------------------------------------------------------")
+                print("\033[K", end="")
             print(f"[NAIVE] Epoch {epoch+1} complete. Loss: {LOSS:.4f}")
             print("--------------------------------------------------------")
 
@@ -119,6 +118,7 @@ class Word2Vec:
             )
 
     def train_ns(self, training_data: list[tuple[list[int], int]]) -> None:
+        print("--------------------------------------------------------")
         for epoch in range(self.epochs):
             LOSS = 0
             ITER = 0
@@ -145,14 +145,11 @@ class Word2Vec:
                 target_loss = -np.log(self._sigmoid(pos_score) + 1e-9)
                 negatives_loss = -np.sum(np.log(1 - self._sigmoid(neg_scores) + 1e-9))
                 LOSS += target_loss + negatives_loss
-
                 print(
-                    f"[NEGATIVE SAMPLING] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {LOSS:.4f}\r",
+                    f"[NEGATIVE SAMPLING] Epoch {epoch+1}/{self.epochs} | Iteration {ITER}/{len(training_data)} | Loss: {LOSS:.4f}",
                     end="\r",
                 )
-
-            print("\r" + " " * 200 + "\r", end="")
-            print("--------------------------------------------------------")
+                print("\033[K", end="")
             print(f"[NEGATIVE SAMPLING] Epoch {epoch+1} complete. Loss: {LOSS:.4f}")
             print("--------------------------------------------------------")
 
@@ -209,7 +206,7 @@ class Word2Vec:
         }
         with open(f"{self.filename}_metadata.json", "w") as f:
             json.dump(metadata, f)
-        print(f"Model saved to {self.filename}")
+        print(f"Model saved to: \n  {self.filename}_ metadata.json \n  {self.filename}_ weights.npy")
 
     def load(self) -> None:
         if not os.path.exists(f"{self.filename}_metadata.json"):

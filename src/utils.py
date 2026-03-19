@@ -45,9 +45,9 @@ class Data:
 
 @dataclass
 class Settings:
-    window_size: int  # context window +/- in regard of center word
-    n: int  # dimensions of word embeddings
-    epochs: int  # number of training epochs
-    learning_rate: float  # learning rate
-    negative_sample_amount: int  # number of negative samples per positive sample
-    save_file: str  # where to save embeddings
+    window_size: int            # context window +/- in regard of center word
+    n: int                      # dimensions of word embeddings
+    epochs: int                 # number of training epochs
+    learning_rate: float        # learning rate
+    negative_sample_amount: int # number of negative samples per positive sample
+    save_file: str              # where to save embeddings
